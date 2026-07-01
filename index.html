@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ember & Ash</title>
+
+<!--
+  ============================================================
+  HOSTING SETUP — read this before deploying elsewhere
+  ============================================================
+  This file now syncs two devices using Firebase Realtime Database
+  instead of Claude's built-in artifact storage. To make it work:
+
+  1. Go to https://console.firebase.google.com -> Add project.
+  2. Build -> Realtime Database -> Create Database -> start in test mode.
+  3. Project settings (gear icon) -> Your apps -> click "</>" (Web) ->
+     register an app -> copy the firebaseConfig object it shows you.
+  4. Paste your values into FIREBASE_CONFIG below, replacing the
+     placeholder strings.
+  5. Host the file anywhere static (GitHub Pages, Netlify, Vercel).
+
+  Test-mode database rules expire after 30 days and are open to
+  anyone with your database URL. Before sharing this widely, tighten
+  the rules in Firebase Console -> Realtime Database -> Rules.
+  ============================================================
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-database-compat.min.js"></script>
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAA4lKLgFSozbQ8qF8Zic11iIZBjTp2e88",
+    authDomain: "numerouno-f1274.firebaseapp.com",
+    databaseURL: "https://numerouno-f1274-default-rtdb.firebaseio.com",
+    projectId: "numerouno-f1274",
+    storageBucket: "numerouno-f1274.firebasestorage.app",
+    messagingSenderId: "496898037957",
+    appId: "1:496898037957:web:1ba07d351d79c289fb38ac"
+  };
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const fbDb = firebase.database();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #17120f;
+    --bg2: #211a15;
+    --panel: #241c17;
+    --ash: #9c9184;
+    --ash-dim: #6b6459;
+    --ember: #ff6a3d;
+    --ember-deep: #c1441f;
+    --ember-glow: rgba(255,106,61,0.35);
+    --gold: #e8b04b;
+    --paper: #f4ede1;
+    --p1: #ff6a3d;
+    --p2: #4fb3c4;
+    --line: rgba(156,145,132,0.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    background: radial-gradient(ellipse at 50% -10%, #2a1f18 0%, var(--bg) 55%);
+    color: var(--paper);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .app { max-width: 720px; margin: 0 auto; padding: 28px 18px 60px; position: relative; }
+
+  h1, h2, h3 { font-family: 'Fraunces', serif; margin: 0; letter-spacing: -0.01em; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ash-dim);
+  }
+
+  .masthead { text-align:center; margin-bottom: 30px; }
+  .masthead h1 {
+    font-size: 42px;
+    font-weight: 700;
+    font-variation-settings: "opsz" 60;
+    background: linear-gradient(180deg, var(--paper) 20%, var(--ember) 140%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .masthead .tag { color: var(--ash); font-size: 14px; margin-top: 6px; }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--bg2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+  }
+
+  button {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    border-radius: 9px;
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(180deg, var(--ember), var(--ember-deep));
+    color: #1a0f0a;
+    padding: 13px 22px;
+    font-size: 15px;
+    box-shadow: 0 6px 18px var(--ember-glow);
+  }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; box-shadow:none; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ash);
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .btn-ghost:hover { border-color: var(--ash-dim); color: var(--paper); }
+  .btn-row { display:flex; gap: 10px; }
+  .btn-row > * { flex:1; }
+
+  .screen { display: none; animation: fadein .35s ease; }
+  .screen.active { display: block; }
+  @keyframes fadein { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+  .mode-choice { display:grid; gap: 14px; margin-top: 20px; }
+  .mode-card {
+    background: var(--bg2); border:1px solid var(--line); border-radius:12px; padding: 18px;
+    cursor:pointer; transition: border-color .15s;
+  }
+  .mode-card:hover { border-color: var(--ember-deep); }
+  .mode-card .mtitle { font-family:'Fraunces',serif; font-size:18px; font-weight:600; }
+  .mode-card .mdesc { color: var(--ash); font-size: 13px; margin-top:4px; line-height:1.5; }
+
+  .rules-list { display:grid; gap: 14px; margin: 22px 0; }
+  .rule-row { display:flex; gap: 14px; align-items:flex-start; }
+  .rule-num {
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--ember);
+    border:1px solid var(--ember-deep); border-radius:50%; width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;
+  }
+  .rule-row p { margin:0; color: var(--ash); font-size: 14px; line-height:1.5; }
+  .rule-row strong { color: var(--paper); }
+
+  .name-inputs { display:flex; gap: 12px; margin: 20px 0; }
+  .name-field { flex:1; }
+  .name-field label { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color: var(--ash-dim); }
+  .name-field input {
+    width:100%; margin-top:6px; background: var(--bg); border:1px solid var(--line);
+    border-radius:8px; padding:11px 12px; color: var(--paper); font-size:14px; font-family:inherit;
+    text-transform: none;
+  }
+  .name-field input:focus { outline:none; border-color: var(--ember-deep); }
+  .name-field.p1 input:focus { border-color: var(--p1); }
+  .name-field.p2 input:focus { border-color: var(--p2); }
+  .name-field input.code-input { text-transform: uppercase; letter-spacing: 0.15em; font-family:'IBM Plex Mono',monospace; }
+
+  .pass-screen { text-align:center; padding: 70px 20px; }
+  .pass-screen .glyph { font-size: 46px; margin-bottom: 18px; }
+  .pass-screen h2 { font-size: 26px; margin-bottom: 8px; }
+  .pass-screen p { color: var(--ash); font-size: 14px; max-width: 380px; margin: 0 auto 26px; line-height:1.5; }
+
+  .code-display {
+    font-family:'IBM Plex Mono',monospace; font-size: 40px; letter-spacing: 0.12em;
+    color: var(--gold); background: var(--bg2); border:1px solid var(--line); border-radius: 12px;
+    padding: 18px; margin: 18px 0; display:inline-block;
+  }
+  .spinner {
+    width: 20px; height:20px; border-radius:50%; border:2px solid var(--line); border-top-color: var(--ember);
+    display:inline-block; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right:8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .net-error { color: #ff8a8a; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+  .round-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; }
+  .round-bar .eyebrow { color: var(--ash); }
+  .turn-chip {
+    font-family:'IBM Plex Mono',monospace; font-size:12px; padding: 6px 12px; border-radius:20px;
+    border: 1px solid var(--line);
+  }
+  .turn-chip.p1 { color: var(--p1); border-color: var(--p1); }
+  .turn-chip.p2 { color: var(--p2); border-color: var(--p2); }
+
+  .scoreboard { display:flex; gap:10px; margin-bottom: 18px; }
+  .score-pill { flex:1; background: var(--bg2); border:1px solid var(--line); border-radius:10px; padding: 10px 14px; }
+  .score-pill .nm { font-size:12px; color: var(--ash); }
+  .score-pill .val { font-family:'Fraunces',serif; font-size: 22px; font-weight:700; }
+  .score-pill.p1 .val { color: var(--p1); }
+  .score-pill.p2 .val { color: var(--p2); }
+
+  .zonemap { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .zone {
+    position:relative; border-radius: 12px; padding: 14px; border: 1px solid var(--line);
+    background: var(--bg2); overflow:hidden;
+  }
+  .zone.throne { grid-column: span 2; background: linear-gradient(120deg, #2c2118, #241a12); border-color: rgba(232,176,75,0.4); }
+  .zone .zname { font-family:'Fraunces',serif; font-size: 16px; font-weight:600; }
+  .zone .zpts { font-family:'IBM Plex Mono',monospace; font-size:11px; color: var(--gold); margin-top:2px;}
+  .zone .zowner { position:absolute; top:10px; right:12px; font-size: 11px; font-family:'IBM Plex Mono',monospace; padding:3px 8px; border-radius:6px; }
+  .zone .zowner.p1 { background: rgba(255,106,61,0.15); color: var(--p1); }
+  .zone .zowner.p2 { background: rgba(79,179,196,0.15); color: var(--p2); }
+  .zone .zowner.contested { background: rgba(156,145,132,0.12); color: var(--ash); }
+  .zone .stepper { display:flex; align-items:center; gap:10px; margin-top: 12px; }
+  .stepper button {
+    width:30px; height:30px; border-radius:8px; background: var(--panel); border:1px solid var(--line);
+    color: var(--paper); font-size: 16px; line-height:1;
+  }
+  .stepper button:hover { border-color: var(--ember); }
+  .stepper .amt { font-family:'IBM Plex Mono',monospace; font-size: 18px; min-width: 26px; text-align:center; }
+
+  .pool-bar { display:flex; justify-content:space-between; align-items:center; margin: 4px 0 18px; padding: 12px 16px; background: var(--bg2); border-radius:10px; border:1px solid var(--line); }
+  .pool-bar .lbl { font-size:12px; color: var(--ash); }
+  .pool-bar .num { font-family:'IBM Plex Mono',monospace; font-size:20px; color: var(--ember); }
+
+  .sabotage-wrap { margin-bottom: 20px; }
+  .sabotage-wrap .eyebrow { margin-bottom: 10px; }
+  .sab-cards { display:flex; gap:10px; flex-wrap: wrap; }
+  .sab-card {
+    flex: 1 1 130px; background: var(--bg2); border:1px solid var(--line); border-radius:10px;
+    padding: 12px; cursor:pointer; transition: border-color .15s, background .15s;
+  }
+  .sab-card:hover { border-color: var(--ash-dim); }
+  .sab-card.selected { border-color: var(--ember); background: rgba(255,106,61,0.08); }
+  .sab-card .sname { font-weight:600; font-size:13px; }
+  .sab-card .sdesc { font-size:11.5px; color: var(--ash); margin-top:4px; line-height:1.4; }
+  .no-cards { font-size: 13px; color: var(--ash-dim); font-style: italic; }
+
+  .target-note { font-size:12px; color: var(--gold); margin-top:8px; }
+
+  .waiting-overlay {
+    text-align:center; padding: 50px 20px;
+  }
+  .waiting-overlay p { color: var(--ash); font-size: 14px; margin-top: 14px; }
+
+  .reveal-zone { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-radius:10px; background: var(--bg2); border:1px solid var(--line); margin-bottom:10px; opacity:0; transform: translateY(8px); animation: revealIn .5s ease forwards; }
+  @keyframes revealIn { to { opacity:1; transform:none; } }
+  .reveal-zone .rz-name { font-family:'Fraunces',serif; font-size:15px; }
+  .reveal-zone .rz-vals { display:flex; gap:16px; font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .reveal-zone .rz-vals .v1 { color: var(--p1); }
+  .reveal-zone .rz-vals .v2 { color: var(--p2); }
+  .reveal-zone .rz-winner { font-size:11px; padding:3px 9px; border-radius:6px; margin-left:6px; }
+  .reveal-zone .rz-winner.p1 { background: rgba(255,106,61,0.18); color: var(--p1); }
+  .reveal-zone .rz-winner.p2 { background: rgba(79,179,196,0.18); color: var(--p2); }
+  .reveal-zone .rz-winner.tie { background: rgba(156,145,132,0.15); color: var(--ash); }
+  .sab-flag { font-size:10.5px; color: var(--gold); margin-top:3px; font-family:'IBM Plex Mono',monospace; }
+
+  .continue-row { display:flex; justify-content:center; margin-top: 22px; }
+
+  .winner-screen { text-align:center; padding: 60px 20px; }
+  .winner-screen .glyph { font-size: 56px; }
+  .winner-screen h2 { font-size: 34px; margin: 14px 0 6px; }
+  .winner-screen p { color: var(--ash); }
+  .final-scores { display:flex; gap:12px; justify-content:center; margin: 26px 0; }
+
+  .footnote { text-align:center; font-size: 11px; color: var(--ash-dim); margin-top: 30px; font-family:'IBM Plex Mono',monospace; }
+  .conn-badge {
+    position: fixed; top: 14px; right: 14px; font-family:'IBM Plex Mono',monospace; font-size: 10px;
+    padding: 5px 10px; border-radius: 20px; border: 1px solid var(--line); background: var(--bg2);
+    color: var(--ash-dim); display:none; align-items:center; gap:6px;
+  }
+  .conn-badge.show { display:inline-flex; }
+  .conn-dot { width:7px; height:7px; border-radius:50%; background: var(--ember); }
+
+  @media (max-width: 480px) {
+    .zonemap { grid-template-columns: 1fr; }
+    .zone.throne { grid-column: span 1; }
+    .code-display { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="conn-badge" id="conn-badge"><span class="conn-dot"></span><span id="conn-text">syncing</span></div>
+<div class="app">
+
+  <div class="masthead">
+    <h1>Ember &amp; Ash</h1>
+    <div class="tag">A hidden-allocation duel for two</div>
+  </div>
+
+  <!-- MODE SELECT -->
+  <div class="screen active" id="screen-mode">
+    <div class="card">
+      <div class="eyebrow">Choose how you'll play</div>
+      <div class="mode-choice">
+        <div class="mode-card" onclick="goHotseat()">
+          <div class="mtitle">Same device</div>
+          <div class="mdesc">Pass-and-play. One phone or laptop, handed back and forth between rounds.</div>
+        </div>
+        <div class="mode-card" onclick="goOnlineSetup()">
+          <div class="mtitle">Two devices</div>
+          <div class="mdesc">Play live against someone on their own phone or laptop. One of you creates a room, the other joins with a code.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOTSEAT INTRO -->
+  <div class="screen" id="screen-intro">
+    <div class="card">
+      <div class="eyebrow">How it works</div>
+      <div class="rules-list">
+        <div class="rule-row"><div class="rule-num">1</div><p><strong>Five zones, one throne.</strong> Each round you secretly split your embers across the map. The Ash Throne is worth double.</p></div>
+        <div class="rule-row"><div class="rule-num">2</div><p><strong>Reveal together.</strong> Once both players lock in, allocations flip at once. Most strength in a zone claims it.</p></div>
+        <div class="rule-row"><div class="rule-num">3</div><p><strong>Sabotage is scarce.</strong> Earn cards by falling behind. Play at most one per round — Douse, Ambush, Hoard, or Feint.</p></div>
+        <div class="rule-row"><div class="rule-num">4</div><p><strong>Six rounds.</strong> Most zone-points wins. Pass the device when prompted — no peeking.</p></div>
+      </div>
+      <div class="name-inputs">
+        <div class="name-field p1"><label>Player one</label><input type="text" id="p1name" placeholder="Player One" maxlength="16"></div>
+        <div class="name-field p2"><label>Player two</label><input type="text" id="p2name" placeholder="Player Two" maxlength="16"></div>
+      </div>
+      <button class="btn-primary" style="width:100%" onclick="startHotseat()">Begin the duel</button>
+      <div style="text-align:center; margin-top:12px;"><button class="btn-ghost" onclick="backToModes()">Back</button></div>
+    </div>
+  </div>
+
+  <!-- ONLINE SETUP -->
+  <div class="screen" id="screen-online-setup">
+    <div class="card">
+      <div class="eyebrow">Two devices</div>
+      <div class="rules-list">
+        <div class="rule-row"><div class="rule-num">1</div><p><strong>Create a room</strong> and share the code, or <strong>join</strong> with a code you were given.</p></div>
+        <div class="rule-row"><div class="rule-num">2</div><p><strong>Same rules as before</strong> — five zones, sabotage cards, six rounds — just synced live between your two devices.</p></div>
+        <div class="rule-row"><div class="rule-num">3</div><p><strong>Keep this tab open</strong> on both devices while you play; moves sync every couple seconds.</p></div>
+      </div>
+      <div class="name-inputs">
+        <div class="name-field p1"><label>Your name</label><input type="text" id="onlineName" placeholder="Your name" maxlength="16"></div>
+      </div>
+      <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn-primary" onclick="createRoom()">Create a room</button>
+        <button class="btn-ghost" style="border-color:var(--line);" onclick="showJoinField()">Join with a code</button>
+      </div>
+      <div id="join-field-wrap" style="display:none;">
+        <div class="name-inputs">
+          <div class="name-field p2"><label>Room code</label><input type="text" id="joinCode" class="code-input" placeholder="ABCDE" maxlength="5"></div>
+        </div>
+        <button class="btn-primary" style="width:100%" onclick="joinRoom()">Join room</button>
+      </div>
+      <div class="net-error" id="online-setup-error"></div>
+      <div style="text-align:center; margin-top:12px;"><button class="btn-ghost" onclick="backToModes()">Back</button></div>
+    </div>
+  </div>
+
+  <!-- ONLINE WAITING (host, before opponent joins) -->
+  <div class="screen" id="screen-online-waiting">
+    <div class="card pass-screen">
+      <div class="glyph">🔥</div>
+      <h2>Waiting for your opponent</h2>
+      <p>Send them this code. They'll choose "Two devices" → "Join with a code."</p>
+      <div class="code-display" id="waiting-code">-----</div>
+      <p><span class="spinner"></span>Watching for them to join…</p>
+      <div class="net-error" id="waiting-error"></div>
+    </div>
+  </div>
+
+  <!-- PASS SCREEN (hotseat only) -->
+  <div class="screen" id="screen-pass">
+    <div class="card pass-screen">
+      <div class="glyph">🔥</div>
+      <h2 id="pass-title">Pass to Player</h2>
+      <p id="pass-sub">Hand the device over. The other player shouldn't see this screen.</p>
+      <button class="btn-primary" id="pass-btn" onclick="revealAllocationScreen()">I'm ready — show my move</button>
+    </div>
+  </div>
+
+  <!-- ALLOCATION SCREEN (shared by both modes) -->
+  <div class="screen" id="screen-alloc">
+    <div class="round-bar">
+      <div class="eyebrow" id="round-label">Round 1 of 6</div>
+      <div class="turn-chip" id="turn-chip">Player One</div>
+    </div>
+    <div class="scoreboard">
+      <div class="score-pill p1"><div class="nm" id="score-name-1">Player One</div><div class="val" id="score-val-1">0</div></div>
+      <div class="score-pill p2"><div class="nm" id="score-name-2">Player Two</div><div class="val" id="score-val-2">0</div></div>
+    </div>
+
+    <div id="alloc-form-wrap">
+      <div class="pool-bar">
+        <div class="lbl">Embers remaining to place</div>
+        <div class="num" id="pool-remaining">10</div>
+      </div>
+      <div class="zonemap" id="zonemap"></div>
+      <div class="sabotage-wrap">
+        <div class="eyebrow">Sabotage (optional, one per round)</div>
+        <div class="sab-cards" id="sab-cards"></div>
+        <div class="target-note" id="target-note" style="display:none;"></div>
+      </div>
+      <button class="btn-primary" style="width:100%" id="lock-btn" onclick="lockInAllocation()" disabled>Lock in allocation</button>
+    </div>
+
+    <div id="alloc-waiting-wrap" class="waiting-overlay" style="display:none;">
+      <div class="glyph">⏳</div>
+      <p><span class="spinner"></span><span id="alloc-waiting-text">Waiting for your opponent to lock in…</span></p>
+      <div class="net-error" id="alloc-waiting-error"></div>
+    </div>
+  </div>
+
+  <!-- REVEAL SCREEN -->
+  <div class="screen" id="screen-reveal">
+    <div class="round-bar"><div class="eyebrow" id="reveal-round-label">Round 1 reveal</div></div>
+    <div class="card"><div id="reveal-list"></div></div>
+    <div class="continue-row">
+      <button class="btn-primary" id="reveal-continue-btn" onclick="afterReveal()">Continue</button>
+    </div>
+    <div class="net-error" id="reveal-waiting-error" style="text-align:center;"></div>
+  </div>
+
+  <!-- WINNER SCREEN -->
+  <div class="screen" id="screen-winner">
+    <div class="card winner-screen">
+      <div class="glyph" id="winner-glyph">🏆</div>
+      <h2 id="winner-title">Player One claims the Ash Throne</h2>
+      <p id="winner-sub">Six rounds of embers, spent and burned.</p>
+      <div class="final-scores">
+        <div class="score-pill p1"><div class="nm" id="final-name-1">Player One</div><div class="val" id="final-val-1">0</div></div>
+        <div class="score-pill p2"><div class="nm" id="final-name-2">Player Two</div><div class="val" id="final-val-2">0</div></div>
+      </div>
+      <button class="btn-ghost" onclick="location.reload()">Play again</button>
+    </div>
+  </div>
+
+  <div class="footnote" id="footnote">EMBER &amp; ASH</div>
+</div>
+
+<script>
+/* ================= Shared game data ================= */
+const ZONES = [
+  { id:'ridge',   name:'The Ridge',   pts:1 },
+  { id:'hollow',  name:'The Hollow',  pts:1 },
+  { id:'bridge',  name:'The Bridge',  pts:1 },
+  { id:'market',  name:'The Market',  pts:1 },
+  { id:'throne',  name:'Ash Throne',  pts:2, throne:true },
+];
+const SABOTAGE = {
+  douse:  { name:'Douse',  desc:'Peek at one zone before reveal (information only).', needsTarget:true },
+  ambush: { name:'Ambush', desc:"Halve the opponent's strength in one zone you name, blind.", needsTarget:true },
+  hoard:  { name:'Hoard',  desc:'That zone stays contested this round — nobody scores it.', needsTarget:true },
+  feint:  { name:'Feint',  desc:'Your token count in one zone is hidden from your opponent this round.', needsTarget:true },
+};
+const TOTAL_ROUNDS = 6;
+const POOL_PER_ROUND = 10;
+
+let state = null;          // shared shape: {names, scores, zoneOwners, round, sabotageHand}
+let mode = null;           // 'hotseat' | 'online'
+let currentAlloc = {};
+let currentSabotage = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function backToModes() { showScreen('screen-mode'); }
+
+/* ================= XOR commit/reveal helpers ================= */
+function randomCode(len) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function randomKey(len) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let s = '';
+  for (let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function xorEncode(text, key) {
+  let out = '';
+  for (let i=0;i<text.length;i++) {
+    out += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  return btoa(unescape(encodeURIComponent(out)));
+}
+function xorDecode(b64, key) {
+  const raw = decodeURIComponent(escape(atob(b64)));
+  let out = '';
+  for (let i=0;i<raw.length;i++) {
+    out += String.fromCharCode(raw.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  return out;
+}
+
+/* ================= Storage helpers (Firebase Realtime Database) =================
+   Firebase keys can't contain '.', '#', '$', '[', ']', or '/', so room
+   codes/round numbers are joined with underscores instead of colons. */
+function fbPath(key) { return 'emberAsh/' + key.replace(/:/g, '_'); }
+
+async function storeSet(key, value) {
+  try { await fbDb.ref(fbPath(key)).set(value); return true; }
+  catch (e) { console.error('firebase set failed', key, e); return null; }
+}
+async function storeGet(key) {
+  try {
+    const snap = await fbDb.ref(fbPath(key)).get();
+    return snap.exists() ? snap.val() : null;
+  } catch (e) { return null; }
+}
+
+/* ================= HOTSEAT MODE ================= */
+function goHotseat() { showScreen('screen-intro'); }
+
+function startHotseat() {
+  mode = 'hotseat';
+  const p1 = document.getElementById('p1name').value.trim() || 'Player One';
+  const p2 = document.getElementById('p2name').value.trim() || 'Player Two';
+  state = {
+    names: [p1, p2], scores: [0,0], zoneOwners: {}, round: 1,
+    activePlayer: 0, allocations: [null, null],
+    sabotageHand: [[], []], sabotagePlayed: [null, null],
+  };
+  syncScoreNames();
+  showScreen('screen-pass');
+  setupPassScreen();
+}
+
+function setupPassScreen() {
+  const who = state.names[state.activePlayer];
+  document.getElementById('pass-title').textContent = `Pass to ${who}`;
+  document.getElementById('pass-sub').textContent = `Round ${state.round} of ${TOTAL_ROUNDS} — hand the device to ${who}. Nobody else should peek.`;
+}
+
+function revealAllocationScreen() {
+  showScreen('screen-alloc');
+  document.getElementById('alloc-form-wrap').style.display = 'block';
+  document.getElementById('alloc-waiting-wrap').style.display = 'none';
+  renderAllocationScreen(state.activePlayer, state.sabotageHand[state.activePlayer]);
+}
+
+function syncScoreNames() {
+  document.getElementById('score-name-1').textContent = state.names[0];
+  document.getElementById('score-name-2').textContent = state.names[1];
+  document.getElementById('final-name-1').textContent = state.names[0];
+  document.getElementById('final-name-2').textContent = state.names[1];
+}
+
+/* ================= ONLINE MODE ================= */
+let netCode = null, netSlot = null, netName = null, netPollHandle = null;
+let netPendingKey = null; // local key kept until reveal is triggered
+
+function goOnlineSetup() { showScreen('screen-online-setup'); }
+function showJoinField() { document.getElementById('join-field-wrap').style.display = 'block'; }
+
+async function createRoom() {
+  const name = document.getElementById('onlineName').value.trim() || 'Player One';
+  netName = name; netSlot = 0;
+  netCode = randomCode(5);
+  const meta = {
+    round: 1, scores: [0,0], zoneOwners: {}, phase: 'lobby',
+    names: [name, ''], sabotageHand: [[], []], slotsJoined: [true, false],
+    revealResults: null, resultsRound: 0,
+  };
+  const ok = await storeSet(`ea:${netCode}:meta`, meta);
+  if (!ok) { document.getElementById('online-setup-error').textContent = "Couldn't create the room — try again."; return; }
+  document.getElementById('waiting-code').textContent = netCode;
+  showScreen('screen-online-waiting');
+  showConnBadge();
+  pollLobbyAsHost();
+}
+
+async function joinRoom() {
+  const name = document.getElementById('onlineName').value.trim() || 'Player Two';
+  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  if (!code) { document.getElementById('online-setup-error').textContent = 'Enter a room code.'; return; }
+  const meta = await storeGet(`ea:${code}:meta`);
+  if (!meta) { document.getElementById('online-setup-error').textContent = "No room found with that code."; return; }
+  netCode = code; netSlot = 1; netName = name;
+  meta.names[1] = name;
+  meta.slotsJoined[1] = true;
+  meta.phase = 'allocating';
+  await storeSet(`ea:${netCode}:meta`, meta);
+  mode = 'online';
+  state = metaToState(meta);
+  syncScoreNames();
+  showConnBadge();
+  startOnlinePoll();
+  enterAllocationPhase();
+}
+
+function metaToState(meta) {
+  return {
+    names: meta.names, scores: meta.scores, zoneOwners: meta.zoneOwners,
+    round: meta.round, sabotageHand: meta.sabotageHand,
+  };
+}
+
+function showConnBadge() {
+  document.getElementById('conn-badge').classList.add('show');
+  document.getElementById('footnote').textContent = `EMBER & ASH · ROOM ${netCode}`;
+}
+
+async function pollLobbyAsHost() {
+  netPollHandle = setInterval(async () => {
+    const meta = await storeGet(`ea:${netCode}:meta`);
+    if (!meta) return;
+    if (meta.slotsJoined[1]) {
+      clearInterval(netPollHandle);
+      mode = 'online';
+      state = metaToState(meta);
+      syncScoreNames();
+      startOnlinePoll();
+      enterAllocationPhase();
+    }
+  }, 1500);
+}
+
+function enterAllocationPhase() {
+  showScreen('screen-alloc');
+  document.getElementById('alloc-form-wrap').style.display = 'block';
+  document.getElementById('alloc-waiting-wrap').style.display = 'none';
+  renderAllocationScreen(netSlot, state.sabotageHand[netSlot]);
+}
+
+/* Main online poll loop: watches meta for phase changes we need to react to */
+function startOnlinePoll() {
+  if (netPollHandle) clearInterval(netPollHandle);
+  netPollHandle = setInterval(onlinePollTick, 1500);
+}
+
+let netAwaiting = null; // 'opp-commit' | 'opp-key' | 'reveal' | 'ready' | null
+
+async function onlinePollTick() {
+  if (!netCode) return;
+  const meta = await storeGet(`ea:${netCode}:meta`);
+  if (!meta) return;
+
+  if (netAwaiting === 'opp-commit') {
+    const oppCommit = await storeGet(`ea:${netCode}:commit:${1-netSlot}:${meta.round}`);
+    if (oppCommit) {
+      await storeSet(`ea:${netCode}:key:${netSlot}:${meta.round}`, { key: netPendingKey });
+      netAwaiting = (netSlot === 0) ? 'do-resolve' : 'reveal';
+      document.getElementById('alloc-waiting-text').textContent = (netSlot === 0)
+        ? 'Both moves locked — resolving the round…' : 'Move locked — waiting for the reveal…';
+    }
+  }
+
+  if (netAwaiting === 'do-resolve') {
+    const oppKeyObj = await storeGet(`ea:${netCode}:key:${1-netSlot}:${meta.round}`);
+    if (oppKeyObj) {
+      await resolveOnlineRound(meta);
+      netAwaiting = null;
+    }
+  }
+
+  if (netAwaiting === 'reveal') {
+    if (meta.phase === 'revealed' && meta.resultsRound === state.round) {
+      state.scores = meta.scores; state.zoneOwners = meta.zoneOwners; state.sabotageHand = meta.sabotageHand;
+      renderReveal(meta.revealResults);
+      netAwaiting = null;
+    }
+  }
+
+  if (netAwaiting === 'ready') {
+    if (meta.phase === 'allocating' && meta.round > state.round) {
+      state.round = meta.round; state.scores = meta.scores; state.zoneOwners = meta.zoneOwners; state.sabotageHand = meta.sabotageHand;
+      enterAllocationPhase();
+      netAwaiting = null;
+    } else if (meta.phase === 'finished') {
+      showWinner(meta.scores, meta.names);
+      netAwaiting = null;
+    }
+  }
+}
+
+async function lockInOnline() {
+  const meta = await storeGet(`ea:${netCode}:meta`);
+  const round = meta.round;
+  const payload = { alloc: currentAlloc, sabotage: currentSabotage ? { card: currentSabotage.card, target: currentSabotage.target } : null };
+  const key = randomKey(24);
+  netPendingKey = key;
+  const cipher = xorEncode(JSON.stringify(payload), key);
+  await storeSet(`ea:${netCode}:commit:${netSlot}:${round}`, { c: cipher });
+
+  document.getElementById('alloc-form-wrap').style.display = 'none';
+  document.getElementById('alloc-waiting-wrap').style.display = 'block';
+  document.getElementById('alloc-waiting-text').textContent = 'Move locked — waiting for your opponent…';
+  netAwaiting = 'opp-commit';
+}
+
+async function resolveOnlineRound(meta) {
+  const round = meta.round;
+  const myCommit = await storeGet(`ea:${netCode}:commit:${netSlot}:${round}`);
+  const oppCommit = await storeGet(`ea:${netCode}:commit:${1-netSlot}:${round}`);
+  const oppKeyObj = await storeGet(`ea:${netCode}:key:${1-netSlot}:${round}`);
+  const myPayload = JSON.parse(xorDecode(myCommit.c, netPendingKey));
+  const oppPayload = JSON.parse(xorDecode(oppCommit.c, oppKeyObj.key));
+
+  const p0payload = netSlot === 0 ? myPayload : oppPayload;
+  const p1payload = netSlot === 0 ? oppPayload : myPayload;
+
+  const { results, scores, zoneOwners, sabotageHand } = computeResolution(
+    meta.scores, meta.zoneOwners, meta.sabotageHand, meta.names,
+    p0payload.alloc, p1payload.alloc, p0payload.sabotage, p1payload.sabotage
+  );
+
+  meta.scores = scores; meta.zoneOwners = zoneOwners; meta.sabotageHand = sabotageHand;
+  meta.phase = 'revealed'; meta.revealResults = results; meta.resultsRound = round;
+  await storeSet(`ea:${netCode}:meta`, meta);
+
+  state.scores = scores; state.zoneOwners = zoneOwners; state.sabotageHand = sabotageHand;
+  renderReveal(results);
+}
+
+async function continueOnline() {
+  const meta = await storeGet(`ea:${netCode}:meta`);
+  await storeSet(`ea:${netCode}:ready:${netSlot}:${meta.resultsRound}`, { r: true });
+  document.getElementById('reveal-continue-btn').disabled = true;
+  document.getElementById('reveal-waiting-error').textContent = '';
+  netAwaiting = 'ready';
+
+  if (netSlot === 0) {
+    const opp = await storeGet(`ea:${netCode}:ready:1:${meta.resultsRound}`);
+    if (opp) { await advanceRoundAsHost(meta); }
+    else {
+      const waiter = setInterval(async () => {
+        const oppNow = await storeGet(`ea:${netCode}:ready:1:${meta.resultsRound}`);
+        if (oppNow) { clearInterval(waiter); await advanceRoundAsHost(meta); }
+      }, 1200);
+    }
+  }
+}
+
+async function advanceRoundAsHost(meta) {
+  const fresh = await storeGet(`ea:${netCode}:meta`);
+  if (fresh.round > TOTAL_ROUNDS) return;
+  if (fresh.round + 1 > TOTAL_ROUNDS) {
+    fresh.phase = 'finished';
+  } else {
+    fresh.round += 1;
+    fresh.phase = 'allocating';
+  }
+  await storeSet(`ea:${netCode}:meta`, fresh);
+  if (fresh.phase === 'finished') { showWinner(fresh.scores, fresh.names); }
+  else {
+    state.round = fresh.round;
+    document.getElementById('reveal-continue-btn').disabled = false;
+    enterAllocationPhase();
+  }
+}
+
+/* ================= Shared allocation UI (used by both modes) ================= */
+function renderAllocationScreen(activeSlot, hand) {
+  currentAlloc = {}; ZONES.forEach(z => currentAlloc[z.id] = 0);
+  currentSabotage = null;
+
+  document.getElementById('round-label').textContent = `Round ${state.round} of ${TOTAL_ROUNDS}`;
+  const chip = document.getElementById('turn-chip');
+  chip.textContent = state.names[activeSlot];
+  chip.className = 'turn-chip ' + (activeSlot === 0 ? 'p1' : 'p2');
+
+  document.getElementById('score-val-1').textContent = state.scores[0];
+  document.getElementById('score-val-2').textContent = state.scores[1];
+  document.getElementById('score-name-1').textContent = state.names[0];
+  document.getElementById('score-name-2').textContent = state.names[1];
+
+  updatePool();
+  renderZoneMap();
+  renderSabotageCards(hand);
+  updateLockButton();
+}
+
+function updatePool() {
+  const used = Object.values(currentAlloc).reduce((a,b)=>a+b,0);
+  document.getElementById('pool-remaining').textContent = POOL_PER_ROUND - used;
+}
+
+function renderZoneMap() {
+  const wrap = document.getElementById('zonemap');
+  wrap.innerHTML = '';
+  ZONES.forEach(z => {
+    const owner = state.zoneOwners[z.id];
+    const div = document.createElement('div');
+    div.className = 'zone' + (z.throne ? ' throne' : '');
+    let ownerHtml = '';
+    if (owner === 0 || owner === 1) ownerHtml = `<div class="zowner ${owner===0?'p1':'p2'}">${state.names[owner]}</div>`;
+    else if (owner === 'contested-locked') ownerHtml = `<div class="zowner contested">held</div>`;
+    div.innerHTML = `
+      ${ownerHtml}
+      <div class="zname">${z.name}</div>
+      <div class="zpts">${z.pts} point${z.pts>1?'s':''}</div>
+      <div class="stepper">
+        <button onclick="adjustAlloc('${z.id}', -1)">−</button>
+        <div class="amt" id="amt-${z.id}">0</div>
+        <button onclick="adjustAlloc('${z.id}', 1)">+</button>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+function adjustAlloc(zoneId, delta) {
+  const used = Object.values(currentAlloc).reduce((a,b)=>a+b,0);
+  const cur = currentAlloc[zoneId];
+  if (delta > 0 && used >= POOL_PER_ROUND) return;
+  if (delta < 0 && cur <= 0) return;
+  currentAlloc[zoneId] = cur + delta;
+  document.getElementById(`amt-${zoneId}`).textContent = currentAlloc[zoneId];
+  updatePool(); updateLockButton();
+}
+
+function renderSabotageCards(hand) {
+  const wrap = document.getElementById('sab-cards');
+  wrap.innerHTML = '';
+  document.getElementById('target-note').style.display = 'none';
+  if (!hand || hand.length === 0) {
+    wrap.innerHTML = '<div class="no-cards">No sabotage cards yet — earn one by trailing, or every other round.</div>';
+    return;
+  }
+  hand.forEach((cardKey, idx) => {
+    const info = SABOTAGE[cardKey];
+    const div = document.createElement('div');
+    div.className = 'sab-card' + (currentSabotage && currentSabotage.cardIdx === idx ? ' selected' : '');
+    div.innerHTML = `<div class="sname">${info.name}</div><div class="sdesc">${info.desc}</div>`;
+    div.onclick = () => selectSabotage(idx, cardKey, hand);
+    wrap.appendChild(div);
+  });
+}
+
+function selectSabotage(idx, cardKey, hand) {
+  if (currentSabotage && currentSabotage.cardIdx === idx) { currentSabotage = null; renderSabotageCards(hand); updateLockButton(); return; }
+  currentSabotage = { cardIdx: idx, card: cardKey, target: null };
+  renderSabotageCards(hand);
+  const note = document.getElementById('target-note');
+  note.style.display = 'block';
+  note.innerHTML = `Choose a target zone for ${SABOTAGE[cardKey].name}: ` +
+    ZONES.map(z => `<a href="#" style="color:var(--gold); margin-right:8px;" onclick="pickTarget(event,'${z.id}')">${z.name}</a>`).join('');
+  updateLockButton();
+}
+
+function pickTarget(e, zoneId) {
+  e.preventDefault();
+  currentSabotage.target = zoneId;
+  const note = document.getElementById('target-note');
+  note.innerHTML = `Targeting <strong>${ZONES.find(z=>z.id===zoneId).name}</strong> with ${SABOTAGE[currentSabotage.card].name}. Click a card again to change your mind.`;
+  updateLockButton();
+}
+
+function updateLockButton() {
+  const used = Object.values(currentAlloc).reduce((a,b)=>a+b,0);
+  const sabOk = !currentSabotage || currentSabotage.target;
+  document.getElementById('lock-btn').disabled = !(used === POOL_PER_ROUND && sabOk);
+}
+
+function lockInAllocation() {
+  if (mode === 'online') { lockInOnline(); return; }
+  // hotseat
+  const p = state.activePlayer;
+  state.allocations[p] = { ...currentAlloc };
+  state.sabotagePlayed[p] = currentSabotage ? { card: currentSabotage.card, target: currentSabotage.target } : null;
+  if (currentSabotage) state.sabotageHand[p].splice(currentSabotage.cardIdx, 1);
+
+  if (p === 0) {
+    state.activePlayer = 1;
+    setupPassScreen();
+    showScreen('screen-pass');
+  } else {
+    const { results, scores, zoneOwners, sabotageHand } = computeResolution(
+      state.scores, state.zoneOwners, state.sabotageHand, state.names,
+      state.allocations[0], state.allocations[1], state.sabotagePlayed[0], state.sabotagePlayed[1]
+    );
+    state.scores = scores; state.zoneOwners = zoneOwners; state.sabotageHand = sabotageHand;
+    renderReveal(results);
+  }
+}
+
+/* ================= Shared resolution logic ================= */
+function computeResolution(scoresIn, zoneOwnersIn, sabotageHandIn, names, alloc0, alloc1, sab0, sab1) {
+  const scores = [...scoresIn];
+  const zoneOwners = { ...zoneOwnersIn };
+  const sabotageHand = [ [...sabotageHandIn[0]], [...sabotageHandIn[1]] ];
+  const a0 = { ...alloc0 }, a1 = { ...alloc1 };
+
+  if (sab0 && sab0.card === 'ambush') a1[sab0.target] = Math.floor((a1[sab0.target]||0) / 2);
+  if (sab1 && sab1.card === 'ambush') a0[sab1.target] = Math.floor((a0[sab1.target]||0) / 2);
+
+  const results = [];
+  ZONES.forEach(z => {
+    const hoardedByP0 = sab0 && sab0.card === 'hoard' && sab0.target === z.id;
+    const hoardedByP1 = sab1 && sab1.card === 'hoard' && sab1.target === z.id;
+    const v0 = a0[z.id] || 0, v1 = a1[z.id] || 0;
+    let winner = 'tie';
+    if (hoardedByP0 || hoardedByP1) winner = 'contested';
+    else if (v0 > v1) winner = 0;
+    else if (v1 > v0) winner = 1;
+
+    if (winner === 0 || winner === 1) { scores[winner] += z.pts; zoneOwners[z.id] = winner; }
+    else if (winner === 'contested') { zoneOwners[z.id] = 'contested-locked'; }
+
+    results.push({
+      zone: z, v0, v1, winner,
+      sabNote0: sab0 && sab0.target === z.id ? `${names[0]} played ${SABOTAGE[sab0.card].name}` : null,
+      sabNote1: sab1 && sab1.target === z.id ? `${names[1]} played ${SABOTAGE[sab1.card].name}` : null,
+    });
+  });
+
+  const trailing = scores[0] === scores[1] ? null : (scores[0] < scores[1] ? 0 : 1);
+  const keys = Object.keys(SABOTAGE);
+  if (trailing !== null && sabotageHand[trailing].length < 3) sabotageHand[trailing].push(keys[Math.floor(Math.random()*keys.length)]);
+
+  return { results, scores, zoneOwners, sabotageHand };
+}
+
+/* ================= Reveal / continue / winner ================= */
+function renderReveal(results) {
+  document.getElementById('reveal-round-label').textContent = `Round ${state.round} reveal`;
+  const list = document.getElementById('reveal-list');
+  list.innerHTML = '';
+  results.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'reveal-zone';
+    div.style.animationDelay = (i * 0.12) + 's';
+    let winnerTag = '';
+    if (r.winner === 0) winnerTag = `<span class="rz-winner p1">${state.names[0]}</span>`;
+    else if (r.winner === 1) winnerTag = `<span class="rz-winner p2">${state.names[1]}</span>`;
+    else if (r.winner === 'contested') winnerTag = `<span class="rz-winner tie">held / no score</span>`;
+    else winnerTag = `<span class="rz-winner tie">tie / no score</span>`;
+    const notes = [r.sabNote0, r.sabNote1].filter(Boolean).map(n => `<div class="sab-flag">⚡ ${n}</div>`).join('');
+    div.innerHTML = `
+      <div><div class="rz-name">${r.zone.name} <span style="color:var(--ash-dim); font-size:11px;">(${r.zone.pts}pt)</span></div>${notes}</div>
+      <div style="text-align:right;"><div class="rz-vals"><span class="v1">${r.v0}</span><span class="v2">${r.v1}</span></div>${winnerTag}</div>`;
+    list.appendChild(div);
+  });
+  document.getElementById('reveal-continue-btn').disabled = false;
+  showScreen('screen-reveal');
+}
+
+function afterReveal() {
+  if (mode === 'online') { continueOnline(); return; }
+  // hotseat
+  state.round += 1;
+  state.allocations = [null, null];
+  state.sabotagePlayed = [null, null];
+  if (state.round > TOTAL_ROUNDS) { showWinner(state.scores, state.names); return; }
+  state.activePlayer = 0;
+  setupPassScreen();
+  showScreen('screen-pass');
+}
+
+function showWinner(scores, names) {
+  const [s0, s1] = scores;
+  document.getElementById('final-name-1').textContent = names[0];
+  document.getElementById('final-name-2').textContent = names[1];
+  document.getElementById('final-val-1').textContent = s0;
+  document.getElementById('final-val-2').textContent = s1;
+  const title = document.getElementById('winner-title');
+  const sub = document.getElementById('winner-sub');
+  if (s0 === s1) {
+    title.textContent = 'The embers die even';
+    sub.textContent = `Both sides finish at ${s0}. A rare, restless draw.`;
+    document.getElementById('winner-glyph').textContent = '⚖️';
+  } else {
+    const winner = s0 > s1 ? 0 : 1;
+    title.textContent = `${names[winner]} claims the Ash Throne`;
+    sub.textContent = `Final score: ${names[0]} ${s0} — ${names[1]} ${s1}`;
+    document.getElementById('winner-glyph').textContent = '🏆';
+  }
+  if (netPollHandle) clearInterval(netPollHandle);
+  showScreen('screen-winner');
+}
+</script>
+</body>
+</html>
