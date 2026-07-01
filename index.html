@@ -266,6 +266,40 @@
   .conn-badge.show { display:inline-flex; }
   .conn-dot { width:7px; height:7px; border-radius:50%; background: var(--ember); }
 
+  .help-btn {
+    position: fixed; top: 14px; left: 14px; z-index: 40;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--bg2); border: 1px solid var(--line); color: var(--ash);
+    font-family: 'Fraunces', serif; font-size: 16px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .help-btn:hover { border-color: var(--ember); color: var(--paper); }
+
+  .help-overlay {
+    display:none; position: fixed; inset: 0; z-index: 50;
+    background: rgba(10,7,5,0.72); backdrop-filter: blur(2px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .help-overlay.show { display:flex; }
+  .help-modal {
+    max-width: 560px; width:100%; max-height: 84vh; overflow-y: auto;
+    background: linear-gradient(180deg, var(--panel), var(--bg2));
+    border: 1px solid var(--line); border-radius: 16px; padding: 26px;
+  }
+  .help-modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px; }
+  .help-modal-head h2 { font-size: 24px; }
+  .help-close {
+    width: 30px; height:30px; border-radius:8px; background: var(--bg2); border:1px solid var(--line);
+    color: var(--ash); font-size: 16px; flex-shrink:0;
+  }
+  .help-close:hover { color: var(--paper); border-color: var(--ember); }
+  .help-section { margin-top: 20px; }
+  .help-section .eyebrow { margin-bottom: 10px; }
+  .help-sab-grid { display:grid; gap: 10px; margin-top: 4px; }
+  .help-sab-row { background: var(--bg2); border:1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .help-sab-row .sname { font-weight:600; font-size:13px; }
+  .help-sab-row .sdesc { font-size:12px; color: var(--ash); margin-top:3px; line-height:1.4; }
+
   @media (max-width: 480px) {
     .zonemap { grid-template-columns: 1fr; }
     .zone.throne { grid-column: span 1; }
@@ -274,6 +308,36 @@
 </style>
 </head>
 <body>
+<button class="help-btn" onclick="openHelp()" title="How to play">?</button>
+<div class="help-overlay" id="help-overlay" onclick="if(event.target===this) closeHelp()">
+  <div class="help-modal">
+    <div class="help-modal-head">
+      <h2>How to play</h2>
+      <button class="help-close" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="eyebrow">Ember &amp; Ash · quick reference</div>
+
+    <div class="rules-list" style="margin-top:16px;">
+      <div class="rule-row"><div class="rule-num">1</div><p><strong>Five zones, one throne.</strong> Each round you secretly split 10 embers across the map. The Ash Throne is worth double — everyone knows it's there.</p></div>
+      <div class="rule-row"><div class="rule-num">2</div><p><strong>Reveal together.</strong> Once both players lock in, allocations flip at once. Whoever has more strength in a zone claims it for the round's points. Ties score nobody.</p></div>
+      <div class="rule-row"><div class="rule-num">3</div><p><strong>Sabotage is scarce.</strong> You earn a card by trailing in score, or automatically every other round. You may play at most one card per round, alongside your allocation.</p></div>
+      <div class="rule-row"><div class="rule-num">4</div><p><strong>Six rounds.</strong> Whoever holds the most zone-points when round six resolves wins. A tie is a draw.</p></div>
+    </div>
+
+    <div class="help-section">
+      <div class="eyebrow">Sabotage cards</div>
+      <div class="help-sab-grid" id="help-sab-grid"></div>
+    </div>
+
+    <div class="help-section">
+      <div class="eyebrow">Playing together</div>
+      <div class="rules-list" style="margin-top:10px;">
+        <div class="rule-row"><div class="rule-num">A</div><p><strong>Same device:</strong> pass the phone or laptop when prompted — the screen between turns keeps the other player from peeking.</p></div>
+        <div class="rule-row"><div class="rule-num">B</div><p><strong>Two devices:</strong> one player creates a room and shares the code; the other joins with it. Moves sync automatically — keep both tabs open.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="conn-badge" id="conn-badge"><span class="conn-dot"></span><span id="conn-text">syncing</span></div>
 <div class="app">
 
@@ -454,6 +518,28 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 function backToModes() { showScreen('screen-mode'); }
+
+/* ================= Help / instructions modal ================= */
+function renderHelpSabotage() {
+  const grid = document.getElementById('help-sab-grid');
+  if (grid.childElementCount) return; // only build once
+  Object.values(SABOTAGE).forEach(info => {
+    const row = document.createElement('div');
+    row.className = 'help-sab-row';
+    row.innerHTML = `<div class="sname">${info.name}</div><div class="sdesc">${info.desc}</div>`;
+    grid.appendChild(row);
+  });
+}
+function openHelp() {
+  renderHelpSabotage();
+  document.getElementById('help-overlay').classList.add('show');
+}
+function closeHelp() {
+  document.getElementById('help-overlay').classList.remove('show');
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeHelp();
+});
 
 /* ================= XOR commit/reveal helpers ================= */
 function randomCode(len) {
