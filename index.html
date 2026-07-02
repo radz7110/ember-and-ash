@@ -9,20 +9,22 @@
   ============================================================
   HOSTING SETUP — read this before deploying elsewhere
   ============================================================
-  This file now syncs two devices using Firebase Realtime Database
+  This file syncs two devices using Firebase Realtime Database
   instead of Claude's built-in artifact storage. To make it work:
 
   1. Go to https://console.firebase.google.com -> Add project.
-  2. Build -> Realtime Database -> Create Database -> start in test mode.
+  2. Databases & Storage -> Realtime Database -> Create Database
+     -> start in test mode.
   3. Project settings (gear icon) -> Your apps -> click "</>" (Web) ->
      register an app -> copy the firebaseConfig object it shows you.
   4. Paste your values into FIREBASE_CONFIG below, replacing the
      placeholder strings.
-  5. Host the file anywhere static (GitHub Pages, Netlify, Vercel).
+  5. Host the file anywhere static (GitHub Pages, Netlify, Vercel),
+     renamed to index.html.
 
-  Test-mode database rules expire after 30 days and are open to
-  anyone with your database URL. Before sharing this widely, tighten
-  the rules in Firebase Console -> Realtime Database -> Rules.
+  Test-mode database rules expire after a trial period and are open
+  to anyone with your database URL. Before sharing this widely,
+  tighten the rules in Firebase Console -> Realtime Database -> Rules.
   ============================================================
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
@@ -42,7 +44,7 @@
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #17120f;
@@ -81,13 +83,14 @@
 
   .masthead { text-align:center; margin-bottom: 30px; }
   .masthead h1 {
-    font-size: 42px;
-    font-weight: 700;
-    font-variation-settings: "opsz" 60;
-    background: linear-gradient(180deg, var(--paper) 20%, var(--ember) 140%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-family: 'Press Start 2P', 'Fraunces', serif;
+    font-size: 26px;
+    line-height: 1.5;
+    letter-spacing: 1px;
+    color: var(--ember);
+    text-shadow: 2px 2px 0 #3a1a0f, 4px 4px 0 rgba(0,0,0,0.25);
   }
-  .masthead .tag { color: var(--ash); font-size: 14px; margin-top: 6px; }
+  .masthead .tag { color: var(--ash); font-size: 12px; margin-top: 10px; font-family:'IBM Plex Mono',monospace; letter-spacing: 0.06em; }
 
   .card {
     background: linear-gradient(180deg, var(--panel), var(--bg2));
@@ -181,17 +184,49 @@
   .round-bar .eyebrow { color: var(--ash); }
   .turn-chip {
     font-family:'IBM Plex Mono',monospace; font-size:12px; padding: 6px 12px; border-radius:20px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line); display:inline-flex; align-items:center; gap:6px;
   }
   .turn-chip.p1 { color: var(--p1); border-color: var(--p1); }
   .turn-chip.p2 { color: var(--p2); border-color: var(--p2); }
 
   .scoreboard { display:flex; gap:10px; margin-bottom: 18px; }
   .score-pill { flex:1; background: var(--bg2); border:1px solid var(--line); border-radius:10px; padding: 10px 14px; }
-  .score-pill .nm { font-size:12px; color: var(--ash); }
+  .score-pill .nm { font-size:12px; color: var(--ash); display:flex; align-items:center; gap:5px; }
   .score-pill .val { font-family:'Fraunces',serif; font-size: 22px; font-weight:700; }
   .score-pill.p1 .val { color: var(--p1); }
   .score-pill.p2 .val { color: var(--p2); }
+
+  /* ---- Territory map ---- */
+  .territory-map-wrap {
+    margin-bottom: 18px; border-radius: 4px; overflow:hidden;
+    border: 3px solid #4a3220; background: var(--bg2); padding: 8px;
+    box-shadow: 0 0 0 1px #1a0f0a, inset 0 0 0 2px rgba(232,176,75,0.15);
+  }
+  .territory-map { width:100%; height:auto; display:block; image-rendering: pixelated; }
+  .map-label { font-family:'Press Start 2P', monospace; font-size: 7px; fill: var(--ash); }
+  .map-label.gold { fill: var(--gold); }
+  .map-legend { display:flex; gap: 16px; justify-content:center; padding: 8px 4px 2px; font-size: 11px; color: var(--ash); font-family:'IBM Plex Mono',monospace; }
+  .map-legend span { display:inline-flex; align-items:center; gap:5px; }
+
+  @keyframes flameFlicker {
+    0%, 100% { transform: scaleY(1) scaleX(1); }
+    25% { transform: scaleY(1.06) scaleX(0.97); }
+    50% { transform: scaleY(0.95) scaleX(1.03); }
+    75% { transform: scaleY(1.03) scaleX(0.99); }
+  }
+  .flame-flicker { animation: flameFlicker 1.6s ease-in-out infinite; transform-box: fill-box; }
+  @keyframes throneGlowPulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+  }
+  .throne-glow-pulse { animation: throneGlowPulse 2.2s ease-in-out infinite; }
+  @keyframes emberFloat {
+    0% { transform: translateY(0) scale(1); opacity: 0.9; }
+    100% { transform: translateY(-34px) scale(0.4); opacity: 0; }
+  }
+  .ember-particle { animation: emberFloat 2.4s ease-in infinite; transform-box: fill-box; transform-origin: center; }
+  .ember-particle.e2 { animation-delay: 0.7s; }
+  .ember-particle.e3 { animation-delay: 1.4s; }
 
   .zonemap { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
   .zone {
@@ -199,9 +234,10 @@
     background: var(--bg2); overflow:hidden;
   }
   .zone.throne { grid-column: span 2; background: linear-gradient(120deg, #2c2118, #241a12); border-color: rgba(232,176,75,0.4); }
-  .zone .zname { font-family:'Fraunces',serif; font-size: 16px; font-weight:600; }
+  .zone .zname { font-family:'Fraunces',serif; font-size: 16px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .zone .zicon { font-size: 15px; }
   .zone .zpts { font-family:'IBM Plex Mono',monospace; font-size:11px; color: var(--gold); margin-top:2px;}
-  .zone .zowner { position:absolute; top:10px; right:12px; font-size: 11px; font-family:'IBM Plex Mono',monospace; padding:3px 8px; border-radius:6px; }
+  .zone .zowner { position:absolute; top:10px; right:12px; font-size: 11px; font-family:'IBM Plex Mono',monospace; padding:3px 8px; border-radius:6px; display:flex; align-items:center; gap:4px; }
   .zone .zowner.p1 { background: rgba(255,106,61,0.15); color: var(--p1); }
   .zone .zowner.p2 { background: rgba(79,179,196,0.15); color: var(--p2); }
   .zone .zowner.contested { background: rgba(156,145,132,0.12); color: var(--ash); }
@@ -239,11 +275,11 @@
 
   .reveal-zone { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-radius:10px; background: var(--bg2); border:1px solid var(--line); margin-bottom:10px; opacity:0; transform: translateY(8px); animation: revealIn .5s ease forwards; }
   @keyframes revealIn { to { opacity:1; transform:none; } }
-  .reveal-zone .rz-name { font-family:'Fraunces',serif; font-size:15px; }
+  .reveal-zone .rz-name { font-family:'Fraunces',serif; font-size:15px; display:flex; align-items:center; gap:6px; }
   .reveal-zone .rz-vals { display:flex; gap:16px; font-family:'IBM Plex Mono',monospace; font-size:13px; }
   .reveal-zone .rz-vals .v1 { color: var(--p1); }
   .reveal-zone .rz-vals .v2 { color: var(--p2); }
-  .reveal-zone .rz-winner { font-size:11px; padding:3px 9px; border-radius:6px; margin-left:6px; }
+  .reveal-zone .rz-winner { font-size:11px; padding:3px 9px; border-radius:6px; margin-left:6px; display:inline-flex; align-items:center; gap:4px; }
   .reveal-zone .rz-winner.p1 { background: rgba(255,106,61,0.18); color: var(--p1); }
   .reveal-zone .rz-winner.p2 { background: rgba(79,179,196,0.18); color: var(--p2); }
   .reveal-zone .rz-winner.tie { background: rgba(156,145,132,0.15); color: var(--ash); }
@@ -282,7 +318,7 @@
   }
   .help-overlay.show { display:flex; }
   .help-modal {
-    max-width: 560px; width:100%; max-height: 84vh; overflow-y: auto;
+    max-width: 580px; width:100%; max-height: 86vh; overflow-y: auto;
     background: linear-gradient(180deg, var(--panel), var(--bg2));
     border: 1px solid var(--line); border-radius: 16px; padding: 26px;
   }
@@ -293,12 +329,21 @@
     color: var(--ash); font-size: 16px; flex-shrink:0;
   }
   .help-close:hover { color: var(--paper); border-color: var(--ember); }
-  .help-section { margin-top: 20px; }
+  .help-section { margin-top: 22px; }
   .help-section .eyebrow { margin-bottom: 10px; }
   .help-sab-grid { display:grid; gap: 10px; margin-top: 4px; }
   .help-sab-row { background: var(--bg2); border:1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
   .help-sab-row .sname { font-weight:600; font-size:13px; }
   .help-sab-row .sdesc { font-size:12px; color: var(--ash); margin-top:3px; line-height:1.4; }
+  .help-example {
+    background: var(--bg2); border:1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+    font-size: 13px; color: var(--ash); line-height:1.6; margin-top: 10px;
+  }
+  .help-example strong { color: var(--paper); }
+  .help-zone-key { display:grid; gap:8px; margin-top:10px; }
+  .help-zone-key-row { display:flex; align-items:center; gap:10px; font-size:13px; color: var(--ash); }
+  .help-zone-key-row .zicon { font-size:16px; width:20px; text-align:center; }
+  .help-zone-key-row strong { color: var(--paper); }
 
   @media (max-width: 480px) {
     .zonemap { grid-template-columns: 1fr; }
@@ -315,13 +360,26 @@
       <h2>How to play</h2>
       <button class="help-close" onclick="closeHelp()">✕</button>
     </div>
-    <div class="eyebrow">Ember &amp; Ash · quick reference</div>
+    <div class="eyebrow">Ember &amp; Ash · full rules</div>
 
     <div class="rules-list" style="margin-top:16px;">
-      <div class="rule-row"><div class="rule-num">1</div><p><strong>Five zones, one throne.</strong> Each round you secretly split 10 embers across the map. The Ash Throne is worth double — everyone knows it's there.</p></div>
-      <div class="rule-row"><div class="rule-num">2</div><p><strong>Reveal together.</strong> Once both players lock in, allocations flip at once. Whoever has more strength in a zone claims it for the round's points. Ties score nobody.</p></div>
-      <div class="rule-row"><div class="rule-num">3</div><p><strong>Sabotage is scarce.</strong> You earn a card by trailing in score, or automatically every other round. You may play at most one card per round, alongside your allocation.</p></div>
-      <div class="rule-row"><div class="rule-num">4</div><p><strong>Six rounds.</strong> Whoever holds the most zone-points when round six resolves wins. A tie is a draw.</p></div>
+      <div class="rule-row"><div class="rule-num">1</div><p><strong>You're a clan of one cat.</strong> Your cat and your opponent's cat are fighting over five territories on the map below. Each round you have 10 embers (your cat's strength) to secretly split across those five zones however you like — all on one, spread evenly, whatever you think will win.</p></div>
+      <div class="rule-row"><div class="rule-num">2</div><p><strong>The Ash Throne is worth double.</strong> It sits at the center of the map and scores 2 points instead of 1 — everyone can see it's the prize zone, so expect your opponent to contest it hard too.</p></div>
+      <div class="rule-row"><div class="rule-num">3</div><p><strong>Reveal together.</strong> Once you've both locked in your allocation, everything flips face-up at the same moment. In each zone, whoever placed more embers wins it and their cat plants a flag there for the round. Equal embers in a zone means nobody scores it.</p></div>
+      <div class="rule-row"><div class="rule-num">4</div><p><strong>Falling behind earns you a sabotage card.</strong> Whoever has fewer points after a round gets a random sabotage card added to their hand (capped at 3 in hand at once). Cards are also handed out to both players automatically every other round, win or lose.</p></div>
+      <div class="rule-row"><div class="rule-num">5</div><p><strong>Play at most one sabotage card per round</strong>, alongside your normal allocation. Once played, it's gone — so timing matters. Save it for the Ash Throne round, or use it early to shape how your opponent plays.</p></div>
+      <div class="rule-row"><div class="rule-num">6</div><p><strong>Six rounds total.</strong> After round six resolves, whoever has the most zone-points wins the game. Equal scores end in a draw.</p></div>
+    </div>
+
+    <div class="help-section">
+      <div class="eyebrow">The five territories</div>
+      <div class="help-zone-key">
+        <div class="help-zone-key-row"><span class="zicon">⛰️</span><strong>The Ridge</strong> — 1 point, a steep highland at the map's edge.</div>
+        <div class="help-zone-key-row"><span class="zicon">🌾</span><strong>The Hollow</strong> — 1 point, a low sheltered valley.</div>
+        <div class="help-zone-key-row"><span class="zicon">🌉</span><strong>The Bridge</strong> — 1 point, the crossing that connects everything.</div>
+        <div class="help-zone-key-row"><span class="zicon">🏺</span><strong>The Market</strong> — 1 point, a cluster of trading stalls.</div>
+        <div class="help-zone-key-row"><span class="zicon">🔥</span><strong>Ash Throne</strong> — 2 points, the contested seat of power.</div>
+      </div>
     </div>
 
     <div class="help-section">
@@ -330,14 +388,25 @@
     </div>
 
     <div class="help-section">
+      <div class="eyebrow">A worked example round</div>
+      <div class="help-example">
+        Say you have 10 embers. You put <strong>5 on the Ash Throne</strong>, <strong>3 on the Bridge</strong>, and <strong>2 on the Market</strong>, leaving the Ridge and Hollow empty.
+        Your opponent, not realizing you'd commit so hard to the Throne, spreads out: <strong>2 on each of the five zones</strong>.
+        At reveal: you win the Throne (5 &gt; 2, worth 2 points) and the Bridge (3 &gt; 2) and the Market (2 = 2, a tie — nobody scores it). Your opponent picks up the Ridge and Hollow, where you placed nothing.
+        Final tally for the round: <strong>you score 3 points, your opponent scores 2.</strong> Overcommitting to the Throne paid off — but if they'd guessed your plan and stacked the Throne too, you'd have lost your biggest bet.
+      </div>
+    </div>
+
+    <div class="help-section">
       <div class="eyebrow">Playing together</div>
       <div class="rules-list" style="margin-top:10px;">
-        <div class="rule-row"><div class="rule-num">A</div><p><strong>Same device:</strong> pass the phone or laptop when prompted — the screen between turns keeps the other player from peeking.</p></div>
-        <div class="rule-row"><div class="rule-num">B</div><p><strong>Two devices:</strong> one player creates a room and shares the code; the other joins with it. Moves sync automatically — keep both tabs open.</p></div>
+        <div class="rule-row"><div class="rule-num">A</div><p><strong>Same device:</strong> pass the phone or laptop when prompted — the screen between turns keeps the other player from peeking at your allocation.</p></div>
+        <div class="rule-row"><div class="rule-num">B</div><p><strong>Two devices:</strong> one player creates a room and shares the 5-letter code; the other joins with it. Moves sync automatically in the background — just keep both tabs open until the game ends.</p></div>
       </div>
     </div>
   </div>
 </div>
+
 <div class="conn-badge" id="conn-badge"><span class="conn-dot"></span><span id="conn-text">syncing</span></div>
 <div class="app">
 
@@ -373,6 +442,7 @@
         <div class="rule-row"><div class="rule-num">3</div><p><strong>Sabotage is scarce.</strong> Earn cards by falling behind. Play at most one per round — Douse, Ambush, Hoard, or Feint.</p></div>
         <div class="rule-row"><div class="rule-num">4</div><p><strong>Six rounds.</strong> Most zone-points wins. Pass the device when prompted — no peeking.</p></div>
       </div>
+      <p style="color:var(--ash); font-size:13px; margin-top:-6px;">Tap the <strong style="color:var(--paper);">?</strong> button any time for the full rules, a worked example, and the sabotage card reference.</p>
       <div class="name-inputs">
         <div class="name-field p1"><label>Player one</label><input type="text" id="p1name" placeholder="Player One" maxlength="16"></div>
         <div class="name-field p2"><label>Player two</label><input type="text" id="p2name" placeholder="Player Two" maxlength="16"></div>
@@ -442,6 +512,57 @@
       <div class="score-pill p2"><div class="nm" id="score-name-2">Player Two</div><div class="val" id="score-val-2">0</div></div>
     </div>
 
+    <div class="territory-map-wrap">
+      <svg class="territory-map" viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+        <defs>
+          <linearGradient id="gradSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3a2a1c"/>
+            <stop offset="100%" stop-color="#1c150f"/>
+          </linearGradient>
+          <radialGradient id="gradThroneGlow" cx="50%" cy="45%" r="60%">
+            <stop offset="0%" stop-color="#ffd98a" stop-opacity="0.9"/>
+            <stop offset="45%" stop-color="#ff8a4d" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#ff8a4d" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <rect x="0" y="0" width="480" height="320" rx="4" fill="url(#gradSky)"/>
+        <rect x="38" y="30" width="2" height="2" fill="var(--ash-dim)" opacity="0.6"/>
+        <rect x="418" y="44" width="2" height="2" fill="var(--ash-dim)" opacity="0.5"/>
+        <rect x="198" y="19" width="2" height="2" fill="var(--ash-dim)" opacity="0.4"/>
+        <rect x="448" y="149" width="2" height="2" fill="var(--ash-dim)" opacity="0.4"/>
+
+        <path d="M110,110 L240,167 L110,255" stroke="var(--line)" stroke-width="3" fill="none" stroke-dasharray="6 6" opacity="0.7"/>
+        <path d="M240,167 L300,80 L375,245 L240,167" stroke="var(--line)" stroke-width="3" fill="none" stroke-dasharray="6 6" opacity="0.7"/>
+
+        <!-- Pixel-art zone dioramas: filled by renderPixelDioramas() in JS -->
+        <g id="zone-ridge-pixels"></g>
+        <g id="zone-hollow-pixels"></g>
+        <g id="zone-bridge-pixels" transform="rotate(-9 240 167)"></g>
+        <g id="zone-market-pixels"></g>
+
+        <!-- Ash Throne: glow + pixel rock base + animated pixel flame -->
+        <circle cx="300" cy="80" r="62" fill="url(#gradThroneGlow)" class="throne-glow-pulse"/>
+        <g id="zone-throne-rock-pixels"></g>
+        <g id="zone-throne-flame-pixels" class="flame-flicker" style="transform-origin: 300px 80px;"></g>
+        <rect class="ember-particle e1" x="287" y="69" width="3" height="3" fill="var(--ember)"/>
+        <rect class="ember-particle e2" x="311" y="64" width="2.5" height="2.5" fill="var(--gold)"/>
+        <rect class="ember-particle e3" x="299" y="54" width="2.5" height="2.5" fill="var(--ember)"/>
+
+        <text x="110" y="168" text-anchor="middle" class="map-label">RIDGE</text>
+        <text x="110" y="303" text-anchor="middle" class="map-label">HOLLOW</text>
+        <text x="240" y="204" text-anchor="middle" class="map-label">BRIDGE</text>
+        <text x="371" y="298" text-anchor="middle" class="map-label">MARKET</text>
+        <text x="300" y="150" text-anchor="middle" class="map-label gold">ASH THRONE</text>
+
+        <g id="map-markers"></g>
+      </svg>
+      <div class="map-legend">
+        <span id="legend-p1"></span>
+        <span id="legend-p2"></span>
+      </div>
+    </div>
+
     <div id="alloc-form-wrap">
       <div class="pool-bar">
         <div class="lbl">Embers remaining to place</div>
@@ -493,11 +614,11 @@
 <script>
 /* ================= Shared game data ================= */
 const ZONES = [
-  { id:'ridge',   name:'The Ridge',   pts:1 },
-  { id:'hollow',  name:'The Hollow',  pts:1 },
-  { id:'bridge',  name:'The Bridge',  pts:1 },
-  { id:'market',  name:'The Market',  pts:1 },
-  { id:'throne',  name:'Ash Throne',  pts:2, throne:true },
+  { id:'ridge',   name:'The Ridge',   pts:1, icon:'⛰️', cx:110, cy:110 },
+  { id:'hollow',  name:'The Hollow',  pts:1, icon:'🌾', cx:110, cy:255 },
+  { id:'bridge',  name:'The Bridge',  pts:1, icon:'🌉', cx:240, cy:167 },
+  { id:'market',  name:'The Market',  pts:1, icon:'🏺', cx:375, cy:245 },
+  { id:'throne',  name:'Ash Throne',  pts:2, icon:'🔥', cx:300, cy:80, throne:true },
 ];
 const SABOTAGE = {
   douse:  { name:'Douse',  desc:'Peek at one zone before reveal (information only).', needsTarget:true },
@@ -512,6 +633,151 @@ let state = null;          // shared shape: {names, scores, zoneOwners, round, s
 let mode = null;           // 'hotseat' | 'online'
 let currentAlloc = {};
 let currentSabotage = null;
+
+/* ================= Pixel-art rendering core ================= */
+/* Every visual (cats, zone dioramas) is built from a grid of flat-colored
+   squares — no curves, no gradients, no anti-aliasing — for a genuine
+   pixel-art look. cellsToSVG turns a list of {c,r,color} cells into <rect>
+   markup; 1.02 width/height (instead of 1) closes tiny seams that can
+   appear between adjacent pixels when the SVG is scaled by the browser. */
+function cellsToSVG(cells, ox, oy, cell) {
+  let s = `<g transform="translate(${ox},${oy}) scale(${cell})" shape-rendering="crispEdges">`;
+  cells.forEach(({c, r, color}) => {
+    s += `<rect x="${c}" y="${r}" width="1.02" height="1.02" fill="${color}"/>`;
+  });
+  s += '</g>';
+  return s;
+}
+
+/* 11x10 pixel cat, read top-to-bottom. D=outline B=body(player color)
+   K=eye P=nose W=highlight  .=transparent */
+const CAT_MATRIX = [
+  "..D.....D..",
+  ".DBD...DBD.",
+  ".DBBD.DBBD.",
+  "..DBBBBBD..",
+  "..DWBBBBD..",
+  ".DBKBBBKBD.",
+  ".DBBBPBBBD.",
+  ".DBBBBBBBD.",
+  ".DBBBBBBBD.",
+  "..DDDDDDD..",
+];
+function catCells(colorVar) {
+  const palette = { D:'#2a1810', B:colorVar, K:'#150c08', P:'#ffb199', W:'#fdf6e3' };
+  const cells = [];
+  CAT_MATRIX.forEach((row, r) => {
+    for (let c=0;c<row.length;c++) {
+      const ch = row[c];
+      if (ch === '.') continue;
+      cells.push({ c, r, color: palette[ch] });
+    }
+  });
+  return cells;
+}
+function catIconHTML(colorVar, size) {
+  size = size || 20;
+  return `<svg width="${size}" height="${size/1.1}" viewBox="0 0 44 40" style="vertical-align:middle; flex-shrink:0;" shape-rendering="crispEdges">${cellsToSVG(catCells(colorVar), 0, 0, 4)}</svg>`;
+}
+function catMarkerSVG(cx, cy, colorVar) {
+  const w = 33, h = 30;
+  return `<g transform="translate(${cx - w/2},${cy - h/2})">
+    <rect x="1" y="27" width="31" height="3" fill="#000" opacity="0.3"/>
+    ${cellsToSVG(catCells(colorVar), 0, 0, 3)}
+  </g>`;
+}
+function catIconLarge(colorVar) {
+  return `<svg width="66" height="60" viewBox="0 0 44 40" style="vertical-align:middle; flex-shrink:0; filter:drop-shadow(0 3px 0 rgba(0,0,0,0.4));" shape-rendering="crispEdges">${cellsToSVG(catCells(colorVar), 0, 0, 4)}</svg>`;
+}
+
+/* ---- Procedural pixel-diorama generators for the five zones ----
+   Each returns a list of {c,r,color} cells in its own small grid; the
+   caller positions the grid on the map via cellsToSVG's ox/oy/cell args. */
+function ridgeCells() {
+  const cells = [];
+  for (let r=0;r<9;r++) {
+    const half = Math.round((r/8)*4);
+    const color = r<2 ? '#cfc9b8' : '#5c4a3a';
+    for (let c=6-half;c<=6+half;c++) cells.push({c, r:2+r, color});
+  }
+  for (let r=0;r<11;r++) {
+    const half = Math.round((r/10)*6);
+    let color = '#8a7358';
+    if (r<2) color = '#eef2e6';
+    else if (r>7) color = '#3a2c1f';
+    for (let c=8-half;c<=8+half;c++) cells.push({c, r:1+r, color});
+  }
+  cells.push({c:3, r:10, color:'#3f5330'});
+  cells.push({c:3, r:11, color:'#2c3a22'});
+  cells.push({c:3, r:12, color:'#3a2c1f'});
+  return cells;
+}
+function hollowCells() {
+  const cells = [];
+  const cx=8, cy=6, rx=8, ry=5;
+  for (let r=0;r<12;r++) for (let c=0;c<17;c++) {
+    const dx=(c-cx)/rx, dy=(r-cy)/ry;
+    if (dx*dx+dy*dy<=1) cells.push({c, r, color: r>cy ? '#374a26' : '#4f6338'});
+  }
+  const px=5, py=7, prx=2.4, pry=1.4;
+  for (let r=0;r<12;r++) for (let c=0;c<17;c++) {
+    const dx=(c-px)/prx, dy=(r-py)/pry;
+    if (dx*dx+dy*dy<=1) cells.push({c, r, color:'#5a95a5'});
+  }
+  cells.push({c:12, r:4, color:'#eef2e6'});
+  cells.push({c:13, r:5, color:'#e8b04b'});
+  cells.push({c:11, r:6, color:'#eef2e6'});
+  return cells;
+}
+function bridgeCells() {
+  const cells = [];
+  for (let r=3;r<6;r++) for (let c=0;c<18;c++) {
+    cells.push({c, r, color: r===3 ? '#8a6142' : (r===5 ? '#4a3220' : '#6b4530')});
+  }
+  for (let c=1;c<18;c+=2) cells.push({c, r:6, color:'#2c2019'});
+  for (let c=0;c<18;c++) cells.push({c, r:8, color: (c%3===0) ? '#5a95a5' : '#3a6b7a'});
+  return cells;
+}
+function marketCells() {
+  const cells = [];
+  const stalls = [{ox:0,oy:2}, {ox:6,oy:0}, {ox:3,oy:5}];
+  stalls.forEach(({ox,oy}) => {
+    for (let c=0;c<5;c++) cells.push({c:ox+c, r:oy, color: (c%2===0) ? '#c1441f' : '#e8b04b'});
+    for (let r=1;r<4;r++) for (let c=0;c<5;c++) cells.push({c:ox+c, r:oy+r, color:'#4a2f22'});
+    cells.push({c:ox+1, r:oy+2, color:'#e8b04b'});
+    cells.push({c:ox+3, r:oy+2, color:'#e07a3d'});
+  });
+  return cells;
+}
+function throneRockCells() {
+  const cells = [];
+  const cx=6, cy=9, rx=6, ry=3;
+  for (let r=7;r<12;r++) for (let c=0;c<13;c++) {
+    const dx=(c-cx)/rx, dy=(r-cy)/ry;
+    if (dx*dx+dy*dy<=1) cells.push({c, r, color:'#4a3220'});
+  }
+  return cells;
+}
+function throneFlameCells() {
+  const cells = [];
+  for (let r=0;r<8;r++) {
+    const half = Math.max(0, 3 - Math.floor(r*0.5));
+    let color = '#c1441f';
+    if (r<2) color = '#ffd98a';
+    else if (r<5) color = '#ff8a3d';
+    for (let c=6-half;c<=6+half;c++) cells.push({c, r:1+r, color});
+  }
+  return cells;
+}
+function renderPixelDioramas() {
+  document.getElementById('zone-ridge-pixels').innerHTML = cellsToSVG(ridgeCells(), 55, 44, 6);
+  document.getElementById('zone-hollow-pixels').innerHTML = cellsToSVG(hollowCells(), 58, 219, 6);
+  document.getElementById('zone-bridge-pixels').innerHTML = cellsToSVG(bridgeCells(), 186, 138, 6);
+  document.getElementById('zone-market-pixels').innerHTML = cellsToSVG(marketCells(), 341, 217, 6);
+  document.getElementById('zone-throne-rock-pixels').innerHTML = cellsToSVG(throneRockCells(), 261, 44, 6);
+  document.getElementById('zone-throne-flame-pixels').innerHTML = cellsToSVG(throneFlameCells(), 261, 44, 6);
+}
+let pixelDioramasRendered = false;
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -617,15 +883,32 @@ function revealAllocationScreen() {
 }
 
 function syncScoreNames() {
-  document.getElementById('score-name-1').textContent = state.names[0];
-  document.getElementById('score-name-2').textContent = state.names[1];
-  document.getElementById('final-name-1').textContent = state.names[0];
-  document.getElementById('final-name-2').textContent = state.names[1];
+  document.getElementById('score-name-1').innerHTML = catIconHTML('var(--p1)') + ' ' + state.names[0];
+  document.getElementById('score-name-2').innerHTML = catIconHTML('var(--p2)') + ' ' + state.names[1];
+  document.getElementById('final-name-1').innerHTML = catIconHTML('var(--p1)') + ' ' + state.names[0];
+  document.getElementById('final-name-2').innerHTML = catIconHTML('var(--p2)') + ' ' + state.names[1];
 }
 
 /* ================= ONLINE MODE ================= */
 let netCode = null, netSlot = null, netName = null, netPollHandle = null;
 let netPendingKey = null; // local key kept until reveal is triggered
+
+/* Firebase Realtime Database silently drops empty arrays/objects ({}, [])
+   on write, turning them into null. This repairs meta after every read so
+   the rest of the code can keep assuming zoneOwners/sabotageHand exist. */
+function sanitizeMeta(meta) {
+  if (!meta) return meta;
+  meta.zoneOwners = meta.zoneOwners || {};
+  const hand = meta.sabotageHand;
+  meta.sabotageHand = [
+    (hand && hand[0]) ? hand[0] : [],
+    (hand && hand[1]) ? hand[1] : [],
+  ];
+  meta.scores = meta.scores || [0, 0];
+  meta.names = meta.names || ['Player One', 'Player Two'];
+  meta.slotsJoined = meta.slotsJoined || [false, false];
+  return meta;
+}
 
 function goOnlineSetup() { showScreen('screen-online-setup'); }
 function showJoinField() { document.getElementById('join-field-wrap').style.display = 'block'; }
@@ -651,7 +934,7 @@ async function joinRoom() {
   const name = document.getElementById('onlineName').value.trim() || 'Player Two';
   const code = document.getElementById('joinCode').value.trim().toUpperCase();
   if (!code) { document.getElementById('online-setup-error').textContent = 'Enter a room code.'; return; }
-  const meta = await storeGet(`ea:${code}:meta`);
+  const meta = sanitizeMeta(await storeGet(`ea:${code}:meta`));
   if (!meta) { document.getElementById('online-setup-error').textContent = "No room found with that code."; return; }
   netCode = code; netSlot = 1; netName = name;
   meta.names[1] = name;
@@ -680,7 +963,7 @@ function showConnBadge() {
 
 async function pollLobbyAsHost() {
   netPollHandle = setInterval(async () => {
-    const meta = await storeGet(`ea:${netCode}:meta`);
+    const meta = sanitizeMeta(await storeGet(`ea:${netCode}:meta`));
     if (!meta) return;
     if (meta.slotsJoined[1]) {
       clearInterval(netPollHandle);
@@ -710,7 +993,7 @@ let netAwaiting = null; // 'opp-commit' | 'opp-key' | 'reveal' | 'ready' | null
 
 async function onlinePollTick() {
   if (!netCode) return;
-  const meta = await storeGet(`ea:${netCode}:meta`);
+  const meta = sanitizeMeta(await storeGet(`ea:${netCode}:meta`));
   if (!meta) return;
 
   if (netAwaiting === 'opp-commit') {
@@ -752,7 +1035,7 @@ async function onlinePollTick() {
 }
 
 async function lockInOnline() {
-  const meta = await storeGet(`ea:${netCode}:meta`);
+  const meta = sanitizeMeta(await storeGet(`ea:${netCode}:meta`));
   const round = meta.round;
   const payload = { alloc: currentAlloc, sabotage: currentSabotage ? { card: currentSabotage.card, target: currentSabotage.target } : null };
   const key = randomKey(24);
@@ -791,7 +1074,7 @@ async function resolveOnlineRound(meta) {
 }
 
 async function continueOnline() {
-  const meta = await storeGet(`ea:${netCode}:meta`);
+  const meta = sanitizeMeta(await storeGet(`ea:${netCode}:meta`));
   await storeSet(`ea:${netCode}:ready:${netSlot}:${meta.resultsRound}`, { r: true });
   document.getElementById('reveal-continue-btn').disabled = true;
   document.getElementById('reveal-waiting-error').textContent = '';
@@ -810,7 +1093,7 @@ async function continueOnline() {
 }
 
 async function advanceRoundAsHost(meta) {
-  const fresh = await storeGet(`ea:${netCode}:meta`);
+  const fresh = sanitizeMeta(await storeGet(`ea:${netCode}:meta`));
   if (fresh.round > TOTAL_ROUNDS) return;
   if (fresh.round + 1 > TOTAL_ROUNDS) {
     fresh.phase = 'finished';
@@ -834,18 +1117,35 @@ function renderAllocationScreen(activeSlot, hand) {
 
   document.getElementById('round-label').textContent = `Round ${state.round} of ${TOTAL_ROUNDS}`;
   const chip = document.getElementById('turn-chip');
-  chip.textContent = state.names[activeSlot];
+  chip.innerHTML = catIconHTML(activeSlot===0 ? 'var(--p1)' : 'var(--p2)', 15) + ' ' + state.names[activeSlot];
   chip.className = 'turn-chip ' + (activeSlot === 0 ? 'p1' : 'p2');
 
   document.getElementById('score-val-1').textContent = state.scores[0];
   document.getElementById('score-val-2').textContent = state.scores[1];
-  document.getElementById('score-name-1').textContent = state.names[0];
-  document.getElementById('score-name-2').textContent = state.names[1];
+  syncScoreNames();
+
+  document.getElementById('legend-p1').innerHTML = catIconHTML('var(--p1)', 14) + ' ' + state.names[0];
+  document.getElementById('legend-p2').innerHTML = catIconHTML('var(--p2)', 14) + ' ' + state.names[1];
 
   updatePool();
+  renderTerritoryMap();
   renderZoneMap();
   renderSabotageCards(hand);
   updateLockButton();
+}
+
+function renderTerritoryMap() {
+  if (!pixelDioramasRendered) { renderPixelDioramas(); pixelDioramasRendered = true; }
+  const markers = document.getElementById('map-markers');
+  markers.innerHTML = '';
+  ZONES.forEach(z => {
+    const owner = state.zoneOwners[z.id];
+    if (owner === 0 || owner === 1) {
+      markers.innerHTML += catMarkerSVG(z.cx, z.cy - 34, owner === 0 ? 'var(--p1)' : 'var(--p2)');
+    } else if (owner === 'contested-locked') {
+      markers.innerHTML += `<rect x="${z.cx-7}" y="${z.cy-41}" width="14" height="14" fill="var(--ash-dim)" stroke="var(--bg2)" stroke-width="2" shape-rendering="crispEdges"/>`;
+    }
+  });
 }
 
 function updatePool() {
@@ -861,11 +1161,12 @@ function renderZoneMap() {
     const div = document.createElement('div');
     div.className = 'zone' + (z.throne ? ' throne' : '');
     let ownerHtml = '';
-    if (owner === 0 || owner === 1) ownerHtml = `<div class="zowner ${owner===0?'p1':'p2'}">${state.names[owner]}</div>`;
-    else if (owner === 'contested-locked') ownerHtml = `<div class="zowner contested">held</div>`;
+    if (owner === 0 || owner === 1) {
+      ownerHtml = `<div class="zowner ${owner===0?'p1':'p2'}">${catIconHTML(owner===0?'var(--p1)':'var(--p2)',12)} ${state.names[owner]}</div>`;
+    } else if (owner === 'contested-locked') ownerHtml = `<div class="zowner contested">held</div>`;
     div.innerHTML = `
       ${ownerHtml}
-      <div class="zname">${z.name}</div>
+      <div class="zname"><span class="zicon">${z.icon}</span>${z.name}</div>
       <div class="zpts">${z.pts} point${z.pts>1?'s':''}</div>
       <div class="stepper">
         <button onclick="adjustAlloc('${z.id}', -1)">−</button>
@@ -998,13 +1299,13 @@ function renderReveal(results) {
     div.className = 'reveal-zone';
     div.style.animationDelay = (i * 0.12) + 's';
     let winnerTag = '';
-    if (r.winner === 0) winnerTag = `<span class="rz-winner p1">${state.names[0]}</span>`;
-    else if (r.winner === 1) winnerTag = `<span class="rz-winner p2">${state.names[1]}</span>`;
+    if (r.winner === 0) winnerTag = `<span class="rz-winner p1">${catIconHTML('var(--p1)',12)} ${state.names[0]}</span>`;
+    else if (r.winner === 1) winnerTag = `<span class="rz-winner p2">${catIconHTML('var(--p2)',12)} ${state.names[1]}</span>`;
     else if (r.winner === 'contested') winnerTag = `<span class="rz-winner tie">held / no score</span>`;
     else winnerTag = `<span class="rz-winner tie">tie / no score</span>`;
     const notes = [r.sabNote0, r.sabNote1].filter(Boolean).map(n => `<div class="sab-flag">⚡ ${n}</div>`).join('');
     div.innerHTML = `
-      <div><div class="rz-name">${r.zone.name} <span style="color:var(--ash-dim); font-size:11px;">(${r.zone.pts}pt)</span></div>${notes}</div>
+      <div><div class="rz-name"><span class="zicon">${r.zone.icon}</span>${r.zone.name} <span style="color:var(--ash-dim); font-size:11px;">(${r.zone.pts}pt)</span></div>${notes}</div>
       <div style="text-align:right;"><div class="rz-vals"><span class="v1">${r.v0}</span><span class="v2">${r.v1}</span></div>${winnerTag}</div>`;
     list.appendChild(div);
   });
@@ -1026,8 +1327,8 @@ function afterReveal() {
 
 function showWinner(scores, names) {
   const [s0, s1] = scores;
-  document.getElementById('final-name-1').textContent = names[0];
-  document.getElementById('final-name-2').textContent = names[1];
+  document.getElementById('final-name-1').innerHTML = catIconHTML('var(--p1)') + ' ' + names[0];
+  document.getElementById('final-name-2').innerHTML = catIconHTML('var(--p2)') + ' ' + names[1];
   document.getElementById('final-val-1').textContent = s0;
   document.getElementById('final-val-2').textContent = s1;
   const title = document.getElementById('winner-title');
@@ -1035,12 +1336,12 @@ function showWinner(scores, names) {
   if (s0 === s1) {
     title.textContent = 'The embers die even';
     sub.textContent = `Both sides finish at ${s0}. A rare, restless draw.`;
-    document.getElementById('winner-glyph').textContent = '⚖️';
+    document.getElementById('winner-glyph').innerHTML = catIconLarge('var(--ash)') + catIconLarge('var(--ash)');
   } else {
     const winner = s0 > s1 ? 0 : 1;
     title.textContent = `${names[winner]} claims the Ash Throne`;
     sub.textContent = `Final score: ${names[0]} ${s0} — ${names[1]} ${s1}`;
-    document.getElementById('winner-glyph').textContent = '🏆';
+    document.getElementById('winner-glyph').innerHTML = catIconLarge(winner===0 ? 'var(--p1)' : 'var(--p2)');
   }
   if (netPollHandle) clearInterval(netPollHandle);
   showScreen('screen-winner');
